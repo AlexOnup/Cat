@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meow Translator</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: url('https://i.imgur.com/QmZ9s92.jpg') no-repeat center center fixed;
+            background-size: cover;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .block {
+            width: 35%;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            color: #ff4500;
+        }
+        textarea {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #ff4500;
+            border-radius: 5px;
+            height: 120px;
+            resize: vertical;
+            overflow-y: auto;
+        }
+        button {
+            background: #ff4500;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #ff6347;
+        }
+    </style>
+    <script>
+        async function translateText() {
+            let text = document.getElementById("text").value;
+            let response = await fetch("/translate", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({text: text})
+            });
+            let data = await response.json();
+            document.getElementById("cat_hash").value = data.cat_hash || "Error";
+        }
+
+        async function translateCatHash() {
+            let catHash = document.getElementById("cat_hash_input").value;
+            let response = await fetch("/translate", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({cat_hash: catHash})
+            });
+            let data = await response.json();
+            document.getElementById("translation").value = data.translation || "Sorry, I don't understand";
+        }
+    </script>
+</head>
+<body>
+    <h1>🐱 Meow Translator AI 🐱</h1>
+    <p>Translate between English and Cat Language!</p>
+    
+    <div class="container">
+        <div class="block">
+            <h3>English to Meow</h3>
+            <textarea id="text" placeholder="Enter English text..."></textarea><br>
+            <button onclick="translateText()">Translate to Meow</button><br>
+            <textarea id="cat_hash" readonly></textarea>
+        </div>
+        
+        <div class="block">
+            <h3>Meow to English</h3>
+            <textarea id="cat_hash_input" placeholder="Enter Meow text..."></textarea><br>
+            <button onclick="translateCatHash()">Translate to English</button><br>
+            <textarea id="translation" readonly></textarea>
+        </div>
+    </div>
+</body>
+</html>
