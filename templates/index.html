@@ -20,6 +20,7 @@
             display: flex;
             justify-content: center;
             gap: 20px;
+            flex-wrap: wrap;
         }
         .block {
             width: 35%;
@@ -52,6 +53,28 @@
         }
         button:hover {
             background: #ff6347;
+        }
+
+        @media (max-width: 1024px) {
+            .block {
+                width: 45%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .block {
+                width: 80%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .block {
+                width: 90%;
+            }
         }
     </style>
     <script>
