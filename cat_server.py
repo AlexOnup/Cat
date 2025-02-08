@@ -5,24 +5,24 @@ from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 
-DB_PATH = "cat_language.db"
+DB_FILE = "cat_language.db"
 
 def init_db():
     """
-    Ініціалізуємо базу даних, якщо її ще немає.
+    Створює таблицю в базі даних, якщо вона не існує.
     """
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS translations (
-            text TEXT PRIMARY KEY, 
+            text TEXT UNIQUE, 
             cat_hash TEXT UNIQUE
         )
     """)
     conn.commit()
     conn.close()
 
-init_db()  # Викликаємо при старті сервера
+init_db()  # Ініціалізація бази при запуску сервера
 
 def generate_cat_hash(text, max_sounds=70):
     """
@@ -52,31 +52,32 @@ def save_to_db(text, cat_hash):
     """
     Зберігає текст та його котячий хеш у базі даних.
     """
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO translations (text, cat_hash) VALUES (?, ?) ON CONFLICT(text) DO NOTHING", (text, cat_hash))
+        cursor.execute("INSERT OR IGNORE INTO translations (text, cat_hash) VALUES (?, ?)", (text, cat_hash))
         conn.commit()
-        print(f"✅ Збережено в БД: {text} → {cat_hash}")
-    except sqlite3.Error as e:
-        print(f"🚨 Помилка запису в БД: {e}")
-    conn.close()
+        print(f"✅ Збережено у базі: {text} -> {cat_hash}")
+    except Exception as e:
+        print(f"❌ Помилка запису в БД: {e}")
+    finally:
+        conn.close()
 
 def translate_from_cat(cat_hash):
     """
     Перекладає котячий хеш назад у текст, якщо він є у базі.
     """
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("SELECT text FROM translations WHERE cat_hash = ?", (cat_hash,))
     result = cursor.fetchone()
     conn.close()
     
     if result:
-        print(f"🔁 Перекладено назад: {cat_hash} → {result[0]}")
+        print(f"✅ Переклад знайдено: {cat_hash} -> {result[0]}")
         return result[0]
     else:
-        print(f"❌ Не знайдено перекладу для: {cat_hash}")
+        print(f"❌ Переклад НЕ знайдено: {cat_hash}")
         return "Sorry, I don't understand"
 
 @app.route("/")
