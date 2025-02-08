@@ -5,6 +5,25 @@ from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 
+DB_PATH = "cat_language.db"
+
+def init_db():
+    """
+    Ініціалізуємо базу даних, якщо її ще немає.
+    """
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS translations (
+            text TEXT PRIMARY KEY, 
+            cat_hash TEXT UNIQUE
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()  # Викликаємо при старті сервера
+
 def generate_cat_hash(text, max_sounds=70):
     """
     Генерує "котячий хеш" на основі вхідного тексту.
@@ -33,23 +52,32 @@ def save_to_db(text, cat_hash):
     """
     Зберігає текст та його котячий хеш у базі даних.
     """
-    conn = sqlite3.connect("cat_language.db")
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
-    cursor.execute("CREATE TABLE IF NOT EXISTS translations (text TEXT, cat_hash TEXT)")
-    cursor.execute("INSERT INTO translations (text, cat_hash) VALUES (?, ?)", (text, cat_hash))
-    conn.commit()
+    try:
+        cursor.execute("INSERT INTO translations (text, cat_hash) VALUES (?, ?) ON CONFLICT(text) DO NOTHING", (text, cat_hash))
+        conn.commit()
+        print(f"✅ Збережено в БД: {text} → {cat_hash}")
+    except sqlite3.Error as e:
+        print(f"🚨 Помилка запису в БД: {e}")
     conn.close()
 
 def translate_from_cat(cat_hash):
     """
     Перекладає котячий хеш назад у текст, якщо він є у базі.
     """
-    conn = sqlite3.connect("cat_language.db")
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT text FROM translations WHERE cat_hash = ?", (cat_hash,))
     result = cursor.fetchone()
     conn.close()
-    return result[0] if result else "Sorry, I don't understand"
+    
+    if result:
+        print(f"🔁 Перекладено назад: {cat_hash} → {result[0]}")
+        return result[0]
+    else:
+        print(f"❌ Не знайдено перекладу для: {cat_hash}")
+        return "Sorry, I don't understand"
 
 @app.route("/")
 def index():
