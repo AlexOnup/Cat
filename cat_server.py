@@ -4,7 +4,6 @@ import sqlite3
 from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
-
 DB_FILE = "cat_language.db"
 
 def init_db():
@@ -15,6 +14,7 @@ def init_db():
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS translations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             text TEXT UNIQUE, 
             cat_hash TEXT UNIQUE
         )
@@ -22,7 +22,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-init_db()  # Ініціалізація бази при запуску сервера
+init_db()  # Виконується при старті сервера
 
 def generate_cat_hash(text, max_sounds=70):
     """
@@ -55,9 +55,12 @@ def save_to_db(text, cat_hash):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT OR IGNORE INTO translations (text, cat_hash) VALUES (?, ?)", (text, cat_hash))
+        cursor.execute("""
+            INSERT INTO translations (text, cat_hash) VALUES (?, ?) 
+            ON CONFLICT(text) DO NOTHING
+        """, (text, cat_hash))
         conn.commit()
-        print(f"✅ Збережено у базі: {text} -> {cat_hash}")
+        print(f"✅ Збережено у БД: {text} -> {cat_hash}")
     except Exception as e:
         print(f"❌ Помилка запису в БД: {e}")
     finally:
@@ -72,13 +75,7 @@ def translate_from_cat(cat_hash):
     cursor.execute("SELECT text FROM translations WHERE cat_hash = ?", (cat_hash,))
     result = cursor.fetchone()
     conn.close()
-    
-    if result:
-        print(f"✅ Переклад знайдено: {cat_hash} -> {result[0]}")
-        return result[0]
-    else:
-        print(f"❌ Переклад НЕ знайдено: {cat_hash}")
-        return "Sorry, I don't understand"
+    return result[0] if result else "Sorry, I don't understand"
 
 @app.route("/")
 def index():
