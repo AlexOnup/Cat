@@ -1,7 +1,7 @@
 import random
 import hashlib
 import sqlite3
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 
 app = Flask(__name__)
 DB_FILE = "cat_language.db"
@@ -96,6 +96,19 @@ def translate():
         return jsonify({"cat_hash": cat_hash, "translation": translation})
     else:
         return jsonify({"error": "Invalid input"}), 400
+
+@app.route("/download_db", methods=["GET"])
+def download_db():
+    return send_file(DB_FILE, as_attachment=True)
+
+@app.route("/show_db", methods=["GET"])
+def show_db():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM translations")
+    data = cursor.fetchall()
+    conn.close()
+    return jsonify({"database": data})
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
